@@ -13,7 +13,7 @@ Please feel free to reach out to me at jaba5258@colorado.edu with any quesitonsâ
 
 ### Specific Steps:
 
- 1. `Run_GeneEvolve_AM_Sim.sh` works iteratively to feed a number of different parameter combinations into `GeneEvolve_AM_Sim.sh`. This allows the resultant jobs to run in parallel. GeneEvolve_AM_Sim.sh, manewhile, runs the [GeneEvolve program](https://pubmed.ncbi.nlm.nih.gov/27659450/): a "forward time simulator of realistic whole-genome sequence and SNP data".
+ 1. `Run_GeneEvolve_AM_Sim.sh` works iteratively to feed a number of different parameter combinations into `GeneEvolve_AM_Sim.sh`. This allows the resultant jobs to run in parallel. GeneEvolve_AM_Sim.sh, manewhile, runs [GeneEvolve](https://pubmed.ncbi.nlm.nih.gov/27659450/): a "forward time simulator of realistic whole-genome sequence and SNP data".
  
  2. `Make_Sample_Files.sh` converts the GeneEvolve output into a file format that is usable for [plink2](https://www.nature.com/articles/s41467-019-11337-z). 
  
