@@ -20,7 +20,7 @@ Please feel free to reach out to me at jaba5258@colorado.edu with any quesitonsâ
  3. `GeneEvolve_AM_GWAS.sh` and `Run_GeneEvolve_AM_GWAS.sh` operate just like the scripts in Step 1. One iteratively feeds parameters into the other (a script conducting a GWAS using plink2) so that they can run in parallel.
      - I realize that, for a variety of reasons, plink2 is no longer considered the best program for running GWAS and calculating polygenic scores. But that said, I think given the relative simplicity of this simulation, it's plenty sufficient for our purposes. 
      
- 4. Repeat Steps 1 and 2 to simulate a *new* sample. 
+ 4. Repeat Steps 1 and 2 to simulate a *new* sample (just be sure to change the simulation seed first! And the output location if you won't want to overwrite your original files)
  
  5. `Calculate_PGS.sh` and `Run_Calculate_PGS.sh`: These scripts create (in parallel) 144 sets of polygenic scores using 12 sets of summary statistics crossed by 12 sets of simulations. 
  
