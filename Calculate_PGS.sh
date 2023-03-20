@@ -10,14 +10,13 @@ ml intel
 
 for chr in {1..22}; do
 
-file_path = "/path/to/main/directory/"
-mkdir "${file_path}/Target_Samples/PGS/Sample_PGSs/VA"$1"_VF0_matcor"$2
+mkdir "/pl/active/KellerLab/jared/Vertical_Transmission/GeneEvolve/Update_2023/Target_Samples/PGS/Sample_PGSs/VA"$1"_matcor"$2
 
 plink2 \
-    --haps "${file_path}/Target_Samples/GeneEvolve_Output/VA"$1"_VF0_matcor"$2"/VA"$1"_VF0_matcor"$2".pop1.gen10.chr" "$chr" ".hap" 'ref-first' \
-    --legend "${file_path}/Target_Samples/GeneEvolve_Input/sample.chr"$chr".legend" "$chr" \
-    --score "${file_path}/Discovery_Samples/GWAS/GWAS_Output/VA"$3"_VF0_matcor"$4"/VA"$3"_VF0_matcor"$4".pop1.gen10.chr" "$chr" ".ph1_P.glm.linear" 3 4 9 header \
-    --out "${file_path}/Target_Samples/PGS/Sample_PGSs/VA"$1"_VF0_matcor"$2"/PGS_VA"$1"_VF0_matcor"$2"_From_VA"$3"_VF0_matcor"$4"
+    --haps /pl/active/KellerLab/jared/Vertical_Transmission/GeneEvolve/Update_2023/Target_Samples/GeneEvolve_Output/VA"$1"_matcor"$2"/VA"$1"_matcor"$2".pop1.gen10.chr"$chr".hap 'ref-first' \
+    --legend /pl/active/KellerLab/Emmanuel/pedofUKBphased/caucasians/5000/sample.chr"$chr".legend "$chr" \
+    --score /pl/active/KellerLab/jared/Vertical_Transmission/GeneEvolve/Update_2023/Discovery_Samples/GWAS/GWAS_Output/VA"$3"_matcor"$4"/VA"$3"_matcor"$4".pop1.gen10.chr"$chr".ph1_P.glm.linear 3 4 9 header \
+    --out /pl/active/KellerLab/jared/Vertical_Transmission/GeneEvolve/Update_2023/Target_Samples/PGS/Sample_PGSs/VA"$1"_matcor"$2"/Target_VA"$1"_matcor"$2"_Discovery_VA"$3"_matcor"$4"_chr"$chr"
 
 done
 
