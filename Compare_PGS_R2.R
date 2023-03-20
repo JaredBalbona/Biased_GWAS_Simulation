@@ -1,80 +1,96 @@
+import os
+import pandas as pd
+import re
+from glob import glob
 
-library(data.table)
-library(stringr)
-
-setwd("/path/to/main/directory/")
-
-#############################
-# Data Munging Stage
-#############################
-
-# The different parameters used in our initial simulation:
-Params_List <- c("VA.2_VF0_matcor0", "VA.2_VF0_matcor.05", "VA.2_VF0_matcor.2", "VA.2_VF0_matcor.8", "VA.5_VF0_matcor0", "VA.5_VF0_matcor.05", "VA.5_VF0_matcor.2", "VA.5_VF0_matcor.8", "VA.8_VF0_matcor0", "VA.8_VF0_matcor.05", "VA.8_VF0_matcor.2", "VA.8_VF0_matcor.8")
+file_path = "/pl/active/KellerLab/jared/Vertical_Transmission/GeneEvolve/Update_2023/Target_Samples/PGS/"
+params_list = ["VA.2_matcor0", "VA.2_matcor.2", "VA.2_matcor.6", "VA.2_matcor.8",
+               "VA.5_matcor0", "VA.5_matcor.2", "VA.5_matcor.6", "VA.5_matcor.8",
+               "VA.8_matcor0", "VA.8_matcor.2", "VA.8_matcor.6", "VA.8_matcor.8"]
 
 # Combining the Phenotype and PGS files:
-for(i in 1:length(Params_List)) {
-    # Read in each phenotype file, and append 'per' to the ID#'s so that it can be merged with the PGS file:
-    Phen <- fread(paste0(file_path, "Sample_Phenotypes/", Params_List[i],".info.pop1.gen10.sample"), h=T)[-1,c('ID', "ph1_P", "ph1_A")]
-    Phen$ID <- paste0('per', Phen$ID)
-
-    # Get list of PGS files that correspond to this phenotype file: 
-    PGS_Path <- paste0(file_path, "Sample_PGSs/", Params_List[i], "/")
-    PGS_List <- paste0(PGS_Path, list.files(path =  PGS_Path, pattern = "*.sscore", recursive = TRUE))
-
-    # Combine the PGSs (taken from the files in that list) and append them to the phenotype file
-    # Then, rename the newly added PGS column so that it describes the discovery sample from which it was derived
-    Phen_PGS <- Phen
-    for(j in 1:length(PGS_List)){
-        PGS_Temp <- fread(PGS_List[j], header = T)[,c(1,4)]
-            colnames(PGS_Temp)[1] <- 'ID'
-            colnames(PGS_Temp)[2] <- paste0('PGS_', str_match(PGS_List[j], "From_\\s*(.*?)\\s*.sscore")[,2])
-            Phen_PGS <- merge(Phen_PGS, PGS_Temp, by = 'ID')
-            head(Phen_PGS)
-    }
+for params in params_list:
+    phen_file = os.path.join(file_path, f"Sample_Phenotypes/{params}.info.pop1.gen10.sample")
+    phen = pd.read_csv(phen_file, sep="\t", usecols=["ID", "ph1_P", "ph1_A"])[1:]
+    phen["ID"] = "per" + phen["ID"].astype(str)
+#
+    pgs_path = os.path.join(file_path, f"Sample_PGSs/{params}/")
+    pgs_files = glob(os.path.join(pgs_path, "*.sscore"))
+#
+    phen_pgs = phen
+    for pgs_file in pgs_files:
+        pgs_temp = pd.read_csv(pgs_file, sep="\t", usecols=[0, 3])
+        pgs_name = re.search('Discovery_\\s*(.*?)\\s*.sscore', pgs_file).group(1)
+        pgs_temp.columns = ["ID", pgs_name]
+        phen_pgs = pd.merge(phen_pgs, pgs_temp, on="ID")
+#
+#
+    new_phen_pgs = phen_pgs[['ID','ph1_A','ph1_P']]
+    for param in params_list:
+        # Sum across chromosomes:
+        phen_pgs_temp = phen_pgs
+        chr_cols = [param + '_chr' + str(i) for i in range(1, 23)]
+        phen_pgs_temp[param] = phen_pgs_temp[chr_cols].sum(axis=1)
+        phen_pgs_temp = pd.DataFrame(phen_pgs_temp[['ID', param]])
+        phen_pgs_temp.columns = ["ID", "PGS_" + param]
+        new_phen_pgs = pd.merge(new_phen_pgs, phen_pgs_temp, on="ID")
+    #
+    minus_phen = new_phen_pgs.pop("ph1_P")
+    new_phen_pgs.insert(1, "ph1_P", minus_phen)
+#
     # Save the Output:
-    fwrite(Phen_PGS, paste0('Target_Samples/PGS/Phen_PGS/',Params_List[i], '.txt'), sep=',')
-}
+    output_file = os.path.join(file_path, f"Phen_PGS/PGS_{params}.txt")
+    new_phen_pgs.to_csv(output_file, sep=",", index=False)
+    
+# Maybe the issue is due to the scale? So I'll try standardizing all of the PGS's.       
+for params in params_list:
+    input_file = os.path.join(file_path, f"Phen_PGS/PGS_{params}.txt")
+    phen_pgs = pd.read_csv(input_file, sep=",")
+#
+    phen_pgs_std = phen_pgs
+    phen_pgs_std.iloc[:,1:] = (phen_pgs_std.iloc[:,1:] - phen_pgs_std.iloc[:,1:].mean()) / phen_pgs_std.iloc[:,1:].std()
+# 
+    output_file_std = os.path.join(file_path, f"Phen_PGS/Standardized_PGS_{params}.txt")
+    phen_pgs_std.to_csv(output_file_std, sep=",", index=False)
 
 #############################
 # Regression Stage
 #############################
 
-library(data.table)
-library(stringr)
+import pandas as pd
+import numpy as np
+import re
+from glob import glob
 
-rm(list=ls())
-Params_List <- c("VA.2_VF0_matcor0", "VA.2_VF0_matcor.05", "VA.2_VF0_matcor.2", "VA.2_VF0_matcor.8", "VA.5_VF0_matcor0", "VA.5_VF0_matcor.05", "VA.5_VF0_matcor.2", "VA.5_VF0_matcor.8", "VA.8_VF0_matcor0", "VA.8_VF0_matcor.05", "VA.8_VF0_matcor.2", "VA.8_VF0_matcor.8")
+params_list = ["VA.2_matcor0", "VA.2_matcor.2", "VA.2_matcor.6", "VA.2_matcor.8",
+               "VA.5_matcor0", "VA.5_matcor.2", "VA.5_matcor.6", "VA.5_matcor.8",
+               "VA.8_matcor0", "VA.8_matcor.2", "VA.8_matcor.6", "VA.8_matcor.8"]
 
-regression_task <- function(File) {
-    
+def regression_task(file):
     # Read in the Phen/ PGS File, and change the names to make them more informative:
-    DF <- fread(File, h=T)[,-1]
-
-    Sim_Params = str_match(File, "_PGS/\\s*(.*?)\\s*.txt")[,2]
-    names(DF)[names(DF) == 'ph1_A'] <- 'True_VA'
-    names(DF)[names(DF) == 'ph1_P'] <- paste0("Phen_", Sim_Params)
-
+    pgs_df = pd.read_csv(file, sep=',', header=0)
+    pgs_df = pgs_df.iloc[:, 1:]
+    sim_params = re.search(r'PGS_(.*).txt', file).group(1)
+    pgs_df = pgs_df.rename(columns={'ph1_A': 'True_VA', 'ph1_P': 'Phen_' + sim_params})
+#
     # Function to separately regress the phenotype on all other columns: 
-    regressions <- lapply(colnames(DF)[-1], function(col) {
-        formula <- as.formula(paste(colnames(DF)[1], "~", col))
-        fit <- lm(formula, data = DF)
-        return(round(summary(fit)$r.squared,4))
-    })
-
+    regressions = [round(np.corrcoef(pgs_df.iloc[:, 0], pgs_df[col])[0, 1] ** 2, 4) for col in pgs_df.columns[1:]]
+    #
     # Put the regression results into the proper format
-    results <- data.frame(colnames(DF)[1], regressions)
-    colnames(results) <- c("Variable", colnames(DF)[-1])
-    #results <- results[,c('Variable', paste0("Gen_", Sim_Params), paste0('PGS_', Params_List))]
-    results <- results[,c('Variable', 'True_VA', paste0('PGS_', Params_List))]
-
-    return(results)
-}
+    results = pd.DataFrame({'Target': [pgs_df.columns[0]], 'True_VA': [regressions[0]], 
+                            **{'PGS_' + params_list[i]: [regressions[i+1]] for i in range(len(params_list))}})
+#
+    return results
 
 # create a list of data frames to perform the regression task on
-DF_list <- list.files(path = "Target_Samples/PGS/Phen_PGS", pattern = "*.txt", full.names = TRUE)
+df_list = [f for f in glob('/pl/active/KellerLab/jared/Vertical_Transmission/GeneEvolve/Update_2023/Target_Samples/PGS/Phen_PGS/PGS*.txt')]
+
+df_list_std = [f for f in glob('/pl/active/KellerLab/jared/Vertical_Transmission/GeneEvolve/Update_2023/Target_Samples/PGS/Phen_PGS/Standardized*.txt')]
 
 # perform the regression task for each data frame in the list
-results_list <- lapply(DF_list, regression_task)
+results_list = [regression_task(f) for f in df_list]
+results_list_std = [regression_task(f) for f in df_list_std]
 
 # combine the results into a single data frame
-DF_Final <- do.call(rbind, results_list)
+df_final = pd.concat(results_list, ignore_index=True)
+df_final_std = pd.concat(results_list, ignore_index=True)
