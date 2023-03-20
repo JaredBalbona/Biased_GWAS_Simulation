@@ -22,6 +22,6 @@ Please feel free to reach out to me at jaba5258@colorado.edu with any quesitonsâ
      
  4. Repeat Steps 1 and 2 to simulate a *new* sample (just be sure to change the simulation seed first! And the output location if you won't want to overwrite your original files)
  
- 5. `Calculate_PGS.sh` and `Run_Calculate_PGS.sh`: These scripts create (in parallel) 144 sets of polygenic scores using 12 sets of summary statistics crossed by 12 sets of simulations. 
+ 5. `Calculate_PGS.sh` and `Run_Calculate_PGS.sh`: These scripts create (in parallel) 3,168 sets of polygenic scores using 12 sets of summary statistics crossed by 12 sets of simulations crossed by 22 chromosomes.
  
- 6. `Compare_PGS_R2.R` Compares the $R^2$ value of each of the 144 PGS's we've created, and displays the results into a user-friendly format. 
+ 6. `Compare_PGS_R2.R` Gathers all of the output data and sums PGSs across chromosomes (leaving us with only 144 PGS's in total). It then regresses the phenotype onto the VA score, as well as each of the 12 PGSs for that simulation (a little confusing, I know). After all regressions have been performed, it gathers the R2 values for each one and places them into a simple 12x2 table. 
